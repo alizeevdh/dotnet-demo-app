@@ -18,6 +18,21 @@
                    sh 'docker compose up -d'
                }
            }
+           stage('Unit tests') {
+               steps {
+                sh '''
+                    docker rm -f dotnet-tests || true
+                    docker create --name dotnet-tests --network container:todoappdb -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test
+                    docker cp . dotnet-tests:/src
+                    docker start -a dotnet-tests
+                '''
+            }
+            post {
+                always {
+                    sh 'docker rm -f dotnet-tests || true'
+                }
+            }
+        }
            stage('Check') {
                steps {
                    sh 'sleep 15'
