@@ -106,7 +106,7 @@ pipeline {
             steps {
                 sleep 10
                 sh 'docker compose ps'
-                sh 'curl -f http://localhost:5000/'
+                sh 'curl -f http://172.17.0.1:5000/'
             }
         }
     }
