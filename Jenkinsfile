@@ -170,7 +170,7 @@ pipeline {
         }
 
         // 3. Schema in de testdatabase laden
-        stage('Initialize test database') {
+                stage('Initialize test database') {
             steps {
                 sh '''
                     set -e
@@ -179,9 +179,19 @@ pipeline {
                       mariadb -h 127.0.0.1 -uroot -psekrit todo_test_db \
                       < TodoApp/schema.sql
 
+                    # De tests blijken verbinding te maken met de database 'todo_db'.
+                    # Dit is een wegwerpcontainer, dus we maken die database hier ook aan.
                     docker exec todoapp-test-db \
                       mariadb -h 127.0.0.1 -uroot -psekrit \
-                      -e "SHOW TABLES FROM todo_test_db;"
+                      -e "CREATE DATABASE IF NOT EXISTS todo_db; GRANT ALL PRIVILEGES ON todo_db.* TO 'todo_usr'@'%'; FLUSH PRIVILEGES;"
+
+                    docker exec -i todoapp-test-db \
+                      mariadb -h 127.0.0.1 -uroot -psekrit todo_db \
+                      < TodoApp/schema.sql
+
+                    docker exec todoapp-test-db \
+                      mariadb -h 127.0.0.1 -uroot -psekrit \
+                      -e "SHOW TABLES FROM todo_test_db; SHOW TABLES FROM todo_db;"
                 '''
             }
         }
