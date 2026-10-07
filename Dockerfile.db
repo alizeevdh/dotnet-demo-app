@@ -1,3 +1,2 @@
 FROM mariadb:11
 COPY TodoApp/schema.sql /docker-entrypoint-initdb.d/01-schema.sql
-COPY init-test-db.sql /docker-entrypoint-initdb.d/02-test-db.sql
