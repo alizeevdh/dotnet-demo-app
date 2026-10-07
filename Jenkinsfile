@@ -219,7 +219,7 @@ pipeline {
 
                     docker create \
                       --name "$TEST_CONTAINER" \
-                      --network ci-test-network \
+                      --network container:todoapp-test-db \
                       -w /src \
                       -e ConnectionStrings__TodoDb="Server=todoapp-test-db;Port=3306;Database=todo_test_db;User=todo_usr;Password=letmeinplz;" \
                       mcr.microsoft.com/dotnet/sdk:10.0 \
