@@ -193,20 +193,60 @@
 //     }
 // }
 
+pipeline {
+    agent any
 
-node {
-    stage('Checkout') {
-        checkout scm
+    environment {
+        // Zorg dat de .NET CLI weet dat we in non-interactive mode werken
+        DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+        DOTNET_NOLOGO = '1'
     }
-    stage('Preparation') {
-        catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
-            sh 'docker compose down'
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                echo '=== Restore & Build .NET Solution ==='
+                sh 'dotnet restore'
+                sh 'dotnet build --no-restore --configuration Release'
+
+                echo '=== Running Unit Tests ==='
+                // Optioneel: als je tests een database vereisen, kun je hier een testdatabase starten 
+                // of vertrouwen op unit tests die geen externe database nodig hebben.
+                sh 'dotnet test --no-build --configuration Release --verbosity normal'
+            }
+        }
+
+        stage('Build Containers') {
+            steps {
+                echo '=== Building and starting services with Docker Compose ==='
+                // Gebruik 'podman compose' als je agent Podman gebruikt i.p.v. Docker
+                sh 'docker compose up -d --build'
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                echo '=== Verifying if the webapp is responding ==='
+                // Wacht even tot de app volledig is opgestart
+                sh 'sleep 5'
+                // Test of de webapp op poort 5000 een HTTP 200 (of geldige status) teruggeeft
+                sh 'curl -f http://localhost:5000 || exit 1'
+            }
         }
     }
-    stage('Build') {
-        sh 'docker compose up -d --build'
-    }
-    stage('Database schema') {
-        sh 'docker exec -i todoappdb mariadb -utodo_usr -pletmeinplz todo_db < TodoApp/schema.sql'
+
+    post {
+        success {
+            echo 'Pipeline successfully completed!'
+        }
+        failure {
+            echo 'Pipeline failed. Check the logs above.'
+        }
     }
 }
